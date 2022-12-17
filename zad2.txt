@@ -1,0 +1,30 @@
+import vk_requests
+import json
+from dateutil.relativedelta import *
+from datetime import date
+
+# высчитывание возраста
+def age_calculate(bdate):
+    today = date.today()
+    bday = bdate.split('.')
+    member_age = date(int(bday[2]), int(bday[1]), int(bday[0]))
+    age = relativedelta(today, member_age)
+    return age.years
+
+
+def job():
+    key = ""  # ключ для скачивания
+    api = vk_requests.create_api(service_token=key)
+    group_info = api.groups.getById(group_ids="studfmiat")
+    members = api.groups.getMembers(group_id=group_info[0]["id"], fields='bdate')['items']
+    people = []
+    for member in members:
+        if 'bdate' in member.keys() and len(member['bdate'].split(
+                '.')) > 2:  # Фильтруем пользователей по наличию даты рождения и года в дате рождения
+            people += [{'id': member['id'],
+                        'age': age_calculate(member['bdate'])}]  # Сохраняем в список id пользователя и возраст
+    print(json.dumps(people))
+
+# https://vk.com/studfmiat
+if __name__ == '__main__':
+    job()

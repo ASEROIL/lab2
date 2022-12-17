@@ -1,0 +1,45 @@
+import requests
+
+import jsonpickle
+
+
+class District:
+    def __init__(self, name):
+        self.name = name  # название района
+        self.fairs = list()  # список ярмарок
+        self.non_stationary_objects = list()  # список нестационарных объектов
+
+
+def job():
+    key = ""  # ключ для скачивания
+    fairs_id = 62061  # id ярмарок
+    non_stationary_objects_id = 619  # id нестационарных объектов
+    fairs_url = f'https://apidata.mos.ru/v1/datasets/{fairs_id}/rows?api_key={key}'  # скачивание ярмарок
+    non_stationary_objects_url = f'https://apidata.mos.ru/v1/datasets/{non_stationary_objects_id}/rows?api_key={key}'  # скачивание нестационарных объектов
+    fairs = requests.get(fairs_url).json()  # перевод в json
+    non_stationary_objects = requests.get(non_stationary_objects_url).json()  # перевод в json
+
+    district_names = set()  # множество районов
+    for fair in fairs:
+        district_names.add(fair["Cells"]["District"])  # добавление районов из списка ярмарок
+    for non_stationary_object in non_stationary_objects:
+        district_names.add(non_stationary_object["Cells"]["District"])  # добавление районов из списка нестационарных объектов
+    districts = list()
+    for district_name in district_names:
+        district = District(district_name)  # создание объекта района
+        for fair in fairs:
+            if fair["Cells"]["District"] == district_name:
+                district.fairs.append(fair["Cells"]["FairName"])  # добавление ярмарки, если район совпадает
+        for non_stationary_object in non_stationary_objects:
+            if non_stationary_object["Cells"]["District"] == district_name:
+                district.non_stationary_objects.append(non_stationary_object["Cells"]["Name"])  # добавление нестационарного объекта, если район совпадает
+        districts.append(district)
+    jsonpickle.set_preferred_backend('json')  # простой json не хотел работать с объектом района
+    jsonpickle.set_encoder_options('json', ensure_ascii=False)  # ставим поддержку русского языка
+    print(str(jsonpickle.encode(districts)).replace('"py/object": "__main__.District", ', ""))  # костылим красивый вывод, убирая служебное поле jsonpickle
+
+# Ссылки на сеты
+# https://data.mos.ru/opendata/7710881420-mejregionalnye-yarmarki/data/table?versionNumber=1&releaseNumber=42
+# https://data.mos.ru/opendata/7710878000-nestatsionarnye-torgovye-obekty/data/table?versionNumber=3&releaseNumber=1315
+if __name__ == '__main__':
+    job()
